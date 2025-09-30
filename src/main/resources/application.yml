@@ -1,0 +1,32 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: ai
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      lettuce:
+        pool:
+          max-active: 16  # 连接池最大活跃数，根据并发量调整
+          max-idle: 8     # 最大空闲连接
+          min-idle: 4     # 最小空闲连接
+      timeout: 2000ms    # 连接超时时间
+  ai:
+    chat:
+      memory:
+        redis:
+          key-prefix: "spring-ai:chat:"  # 会话键前缀，便于区分其他数据
+          ttl: 86400                     # 会话过期时间(秒)，默认24小时
+    openai:
+      api-key: yourkey
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen-plus
+
+logging:
+  level:
+    org.springframework.ai.chat.client.advisor: debug

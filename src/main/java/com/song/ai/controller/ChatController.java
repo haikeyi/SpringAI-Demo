@@ -7,6 +7,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -38,20 +39,26 @@ public class ChatController {
                 .content();
     }
 
-    @RequestMapping(value = "/chat1", produces = "text/html;charset=utf-8")
-    public Flux<String> streamChat(String input, Long chatId){
+    @RequestMapping(value = "/chat1", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @CrossOrigin(origins = "http://localhost:3000")
+    public Flux<String> streamChat(String input, Long chatId) {
         log.info("用户说：{}", input);
+
         return chatClient
                 .prompt()
                 .user(input)
-                .advisors(new Consumer<ChatClient.AdvisorSpec>() {
-                    @Override
-                    public void accept(ChatClient.AdvisorSpec advisorSpec) {
-                        advisorSpec.param(ChatMemory.CONVERSATION_ID, chatId);
-                    }
-                })
+                .advisors(advisorSpec ->
+                        advisorSpec.param("conversation_id", chatId)
+                )
                 .stream()
-                .content();
+                .content()
+                // 在流结束后添加 [DONE] 标志
+                .concatWith(Flux.just("[DONE]"))
+                // 捕获异常，避免连接中断
+                .onErrorResume(throwable -> {
+                    log.error("流式响应异常", throwable);
+                    return Flux.just("抱歉，AI 服务暂时不可用。[DONE]");
+                });
     }
 
 
